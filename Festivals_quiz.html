@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>節慶單字大挑戰</title>
+    <style>
+        :root { --p: #6c5ce7; --s: #00b894; --a: #fdcb6e; --bg: #f9f9fb; }
+        body { font-family: 'Microsoft JhengHei', Arial, sans-serif; background: var(--bg); padding: 20px; color: #2d3436; }
+        .container { max-width: 700px; margin: auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: var(--p); }
+        .section-header { 
+            background: #f0edff; padding: 12px 20px; border-radius: 10px; 
+            margin: 30px 0 15px; font-weight: bold; font-size: 1.25rem; 
+            border-left: 8px solid var(--p); color: #4834d4;
+        }
+        .question-card { 
+            background: #fff; border: 2px solid #f0f0f0; padding: 20px; 
+            margin-bottom: 15px; border-radius: 15px;
+        }
+        .audio-btn { 
+            background: var(--a); border: none; color: #634d00; padding: 10px 20px; 
+            border-radius: 50px; cursor: pointer; font-weight: bold; margin-bottom: 10px;
+        }
+        .hint-display { 
+            font-size: 1.4rem; text-align: center; margin: 15px 0; 
+            padding: 15px; background: #fff9db; border-radius: 10px; color: #e67e22; font-weight: bold;
+            border: 1px dashed #f39c12;
+        }
+        .options button { 
+            display: block; width: 100%; text-align: left; margin: 8px 0; padding: 14px; 
+            border: 2px solid #eee; border-radius: 12px; background: white; cursor: pointer; font-size: 1.1rem;
+        }
+        .options button:hover { background: #f5f3ff; border-color: var(--p); }
+        .options button.selected { background: #efecff; border-color: var(--p); font-weight: bold; }
+        .fill-container { display: flex; align-items: center; justify-content: center; margin: 20px 0; flex-wrap: wrap; }
+        .fill-input { 
+            width: 35px; border: none; border-bottom: 3px solid var(--p); 
+            font-size: 1.8rem; text-align: center; margin: 0 5px; background: #fffde7; outline: none;
+        }
+        #submit-btn { 
+            width: 100%; padding: 20px; background: var(--s); color: white; 
+            border: none; border-radius: 15px; font-size: 1.5rem; cursor: pointer; font-weight: bold; margin-top: 30px;
+        }
+        .feedback { font-weight: bold; margin-top: 10px; display: none; }
+        #result-area { display: none; text-align: center; margin-top: 25px; padding: 25px; border-radius: 15px; background: #fff9db; border: 2px solid #ffd600; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🎡 節慶英文單字大挑戰 🎡</h1>
+    <div id="quiz-content">正在為小超人準備題目...</div>
+    <button id="submit-btn" onclick="calculateScore()">交卷，看分數！</button>
+    <div id="result-area">
+        <h2 id="score-text"></h2>
+        <button onclick="location.reload()" style="padding:12px 24px; cursor:pointer; background:var(--p); color:white; border:none; border-radius:8px;">重新測驗</button>
+    </div>
+</div>
+
+<script>
+    const wordBank = [
+        { en: "Moon Festival", cn: "中秋節", desc: "【大大的月亮照著一家人】" },
+        { en: "barbecue", cn: "烤肉", desc: "【火爐上面正在烤香腸】" },
+        { en: "moon cake", cn: "月餅", desc: "【圓圓的，裡面有蛋黃的點心】" },
+        { en: "pomelo", cn: "柚子", desc: "【綠色的皮，可以當帽子戴的水果】" },
+        { en: "Christmas", cn: "聖誕節", desc: "【掛滿燈泡和星星的樹】" },
+        { en: "gift", cn: "禮物", desc: "【用漂亮緞帶綁好的盒子】" },
+        { en: "Santa Claus", cn: "聖誕老人", desc: "【穿紅衣服、白鬍子的老公公】" },
+        { en: "Halloween", cn: "萬聖節", desc: "【小朋友穿怪獸衣服去討糖果】" },
+        { en: "jack-o-lantern", cn: "南瓜燈", desc: "【挖了眼睛和嘴巴，裡面有點火的南瓜】" },
+        { en: "Easter", cn: "復活節", desc: "【找尋彩色蛋的節日】" },
+        { en: "Easter Bunny", cn: "復活節兔子", desc: "【長耳朵、拿著籃子送彩蛋的動物】" },
+        { en: "Mother's Day", cn: "母親節", desc: "【向媽媽說謝謝的日子】" },
+        { en: "carnation", cn: "康乃馨", desc: "【送給媽媽的粉紅色花朵】" },
+        { en: "card", cn: "卡片", desc: "【寫滿祝福文字的對折紙】" },
+        { en: "Dragon Boat Festival", cn: "端午節", desc: "【大家在河上划龍舟的節日】" },
+        { en: "rice dumpling", cn: "粽子", desc: "【用葉子包起來，三角形的米飯】" },
+        { en: "sachet", cn: "香包", desc: "【掛在脖子上，香香的小布包】" }
+    ];
+
+    function speak(t) {
+        const m = new SpeechSynthesisUtterance(t);
+        m.lang = 'en-US';
+        speechSynthesis.speak(m);
+    }
+
+    function startQuiz() {
+        const container = document.getElementById('quiz-content');
+        container.innerHTML = "";
+        const shuffled = [...wordBank].sort(() => 0.5 - Math.random()).slice(0, 15);
+        
+        appendHeader(container, "第一部分：👂 聽音選意思 (5 題)");
+        for(let i=0; i<5; i++) renderChoice(container, shuffled[i], i, 'listening');
+
+        appendHeader(container, "第二部分：🖼️ 看提示選英文 (5 題)");
+        for(let i=5; i<10; i++) renderChoice(container, shuffled[i], i, 'picture');
+
+        appendHeader(container, "第三部分：✍️ 聽音拼拼看 (5 題)");
+        for(let i=10; i<15; i++) renderSpelling(container, shuffled[i], i);
+    }
+
+    function appendHeader(c, text) {
+        const h = document.createElement('div');
+        h.className = 'section-header';
+        h.innerText = text;
+        c.appendChild(h);
+    }
+
+    function renderChoice(c, item, idx, type) {
+        const card = document.createElement('div');
+        card.className = 'question-card';
+        const isList = (type === 'listening');
+        card.innerHTML = `
+            <div><b>第 ${idx+1} 題</b></div>
+            ${isList ? `<button class="audio-btn" onclick="speak('${item.en}')">🔊 聽聽看這是什麼節日？</button>` : `<div class="hint-display">${item.desc}</div>`}
+            <p>${isList ? '這單字的意思是？' : '這個提示對應哪個英文單字？'}</p>
+            <div id="opts${idx}" class="options"></div>
+            <p id="f${idx}" class="feedback"></p>
+        `;
+        card.setAttribute('data-ans', isList ? item.cn : item.en);
+        c.appendChild(card);
+        
+        let opts = [isList ? item.cn : item.en];
+        while(opts.length < 3) {
+            let r = wordBank[Math.floor(Math.random()*wordBank.length)];
+            let val = isList ? r.cn : r.en;
+            if(!opts.includes(val)) opts.push(val);
+        }
+        opts.sort(() => 0.5 - Math.random()).forEach(o => {
+            const b = document.createElement('button');
+            b.innerText = o;
+            b.onclick = function() {
+                Array.from(b.parentElement.children).forEach(x => x.classList.remove('selected'));
+                b.classList.add('selected');
+                b.parentElement.setAttribute('data-sel', o);
+            };
+            document.getElementById('opts'+idx).appendChild(b);
+        });
+    }
+
+    function renderSpelling(c, item, idx) {
+        const card = document.createElement('div');
+        card.className = 'question-card';
+        let word = item.en;
+        let html = '';
+        
+        for(let i=0; i<word.length; i++) {
+            if(word[i] === ' ') {
+                html += '<span style="margin: 0 10px;"> </span>'; // 處理空格
+            } else if (i === 0 || (i === word.length - 1 && word.length > 3)) {
+                html += `<span>${word[i]}</span>`;
+            } else {
+                html += `<input type="text" class="fill-input q${idx}" data-idx="${i}" maxlength="1" oninput="if(this.value) focusNext(this, ${idx})">`;
+            }
+        }
+
+        card.innerHTML = `
+            <div><b>第 ${idx+1} 題</b></div>
+            <button class="audio-btn" onclick="speak('${item.en}')">🔊 聽發音並拼字</button>
+            <p>提示：${item.cn}</p>
+            <div class="fill-container">${html}</div>
+            <p id="f${idx}" class="feedback"></p>
+        `;
+        card.setAttribute('data-word', item.en);
+        c.appendChild(card);
+    }
+
+    function focusNext(el, qIdx) {
+        const inputs = document.querySelectorAll('.q'+qIdx);
+        for(let i=0; i<inputs.length; i++){
+            if(inputs[i] === el && inputs[i+1]) {
+                inputs[i+1].focus();
+                break;
+            }
+        }
+    }
+
+    function calculateScore() {
+        let s = 0;
+        const cards = document.querySelectorAll('.question-card');
+        cards.forEach((card, i) => {
+            const f = document.getElementById('f'+i);
+            f.style.display = "block";
+            if(card.hasAttribute('data-word')) {
+                const ans = card.getAttribute('data-word').toLowerCase();
+                const inputs = card.querySelectorAll('.fill-input');
+                let userArr = card.getAttribute('data-word').split('');
+                inputs.forEach(inp => userArr[inp.getAttribute('data-idx')] = inp.value || '_');
+                if(userArr.join('').toLowerCase() === ans) { s++; f.innerText = "✅ 太棒了！"; f.style.color="green"; }
+                else { f.innerText = "❌ 正確答案: " + ans; f.style.color="red"; }
+            } else {
+                const optsDiv = card.querySelector('.options');
+                const sel = optsDiv.getAttribute('data-sel');
+                if(sel === card.getAttribute('data-ans')) { s++; f.innerText = "✅ 太棒了！"; f.style.color="green"; }
+                else { f.innerText = "❌ 正確答案: " + card.getAttribute('data-ans'); f.style.color="red"; }
+            }
+        });
+        document.getElementById('result-area').style.display = "block";
+        document.getElementById('score-text').innerText = "測驗完成！得分：" + s + " / 15";
+        window.scrollTo(0, document.body.scrollHeight);
+    }
+
+    window.addEventListener('load', startQuiz);
+</script>
+</body>
+</html>
